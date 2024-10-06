@@ -1,0 +1,11 @@
+# PocketBase data directory
+# pb_data/
+
+# Docker volumes
+# *.volume
+
+# Environment variables
+# .env
+
+# Log files
+# *.log

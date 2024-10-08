@@ -1,5 +1,9 @@
 
+
+### How to build image
+docker run -p 8080:8080 -v ${PWD}/pb_data:/pb/pb_data pocketbase-image
+
 ### How to run
-- Start: `docker-compose up`
-- Start:`docker-compose up -d` | background mode
-- Stop: `docker-compose down`
+- Start container: `docker-compose up`
+- Start container (background mode):`docker-compose up -d`
+- Stop container: `docker-compose down`

@@ -1,32 +1,48 @@
-version: "3.3"
+version: "3.4"
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Use file provider for certificate
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/certs:/etc/traefik/certs"
+      - "./traefik/dynamic:/etc/traefik/dynamic"
+    networks:
+      - traefik-public
+    restart: unless-stopped
+
   pocketbase:
     build: .
     container_name: pocketbase
-    ports:
-      - "80:8080" # Changed to port 80 to match ngrok's instruction
     volumes:
       - ./pb_data:/pb/pb_data
     environment:
       - SMTP_SERVER=smtp.example.com
       - SMTP_PORT=587
     networks:
-      - ngrok-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pocketbase.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.pocketbase.entrypoints=websecure"
+      - "traefik.http.routers.pocketbase.tls=true"
+      - "traefik.http.services.pocketbase.loadbalancer.server.port=8080"
     restart: unless-stopped
-
-  ngrok:
-    image: ngrok/ngrok:latest
-    restart: unless-stopped
-    environment:
-      - NGROK_AUTHTOKEN=2nloMRR8Scw3uChBfs4sQM7yurD_5DkKBRJqDmmxgRoS6k4nt
-    command: http 80 --url=surely-bold-leopard.ngrok-free.app
-    ports:
-      - "4040:4040"
-    networks:
-      - ngrok-network
-    depends_on:
-      - pocketbase
 
 networks:
-  ngrok-network:
+  traefik-public:
     driver: bridge

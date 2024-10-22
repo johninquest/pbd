@@ -8,3 +8,9 @@
 - Start container: `docker-compose up`
 - Start container (background mode):`docker-compose up -d`
 - Stop container: `docker-compose down`
+
+### Build from scratch before running
+
+- Build: `docker-compose build --no-cache`
+- Start: `docker-compose up`
+- Stop: `docker-compose down`

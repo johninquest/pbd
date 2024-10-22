@@ -1,48 +1,16 @@
-version: "3.4"
+version: "3.5"
 services:
-  traefik:
-    image: traefik:v2.10
-    container_name: traefik
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      # Redirect HTTP to HTTPS
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      # Use file provider for certificate
-      - "--providers.file.directory=/etc/traefik/dynamic"
-      - "--providers.file.watch=true"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./traefik/certs:/etc/traefik/certs"
-      - "./traefik/dynamic:/etc/traefik/dynamic"
-    networks:
-      - traefik-public
-    restart: unless-stopped
-
   pocketbase:
     build: .
     container_name: pocketbase
+    ports:
+      - "80:8080"  # If your provider forwards HTTP
+      # or
+      - "443:8080"  # If your provider forwards HTTPS
+      # or both if needed
     volumes:
       - ./pb_data:/pb/pb_data
     environment:
       - SMTP_SERVER=smtp.example.com
       - SMTP_PORT=587
-    networks:
-      - traefik-public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pocketbase.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.pocketbase.entrypoints=websecure"
-      - "traefik.http.routers.pocketbase.tls=true"
-      - "traefik.http.services.pocketbase.loadbalancer.server.port=8080"
     restart: unless-stopped
-
-networks:
-  traefik-public:
-    driver: bridge

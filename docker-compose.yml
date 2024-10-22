@@ -1,26 +1,32 @@
-version: "3.2"
+version: "3.3"
 services:
   pocketbase:
     build: .
     container_name: pocketbase
     ports:
-      - "8080:8080"  # Changed from 80 to avoid conflicts
+      - "80:8080" # Changed to port 80 to match ngrok's instruction
     volumes:
       - ./pb_data:/pb/pb_data
     environment:
       - SMTP_SERVER=smtp.example.com
       - SMTP_PORT=587
+    networks:
+      - ngrok-network
     restart: unless-stopped
 
   ngrok:
     image: ngrok/ngrok:latest
     restart: unless-stopped
     environment:
-    # - NGROK_AUTHTOKEN=your_ngrok_auth_token 
       - NGROK_AUTHTOKEN=2nloMRR8Scw3uChBfs4sQM7yurD_5DkKBRJqDmmxgRoS6k4nt
-      - NGROK_DOMAIN=surely-bold-leopard.ngrok-free.app
-    command: http pocketbase:8080
+    command: http 80 --url=surely-bold-leopard.ngrok-free.app
     ports:
-      - "4040:4040"  # Ngrok web interface
+      - "4040:4040"
+    networks:
+      - ngrok-network
     depends_on:
       - pocketbase
+
+networks:
+  ngrok-network:
+    driver: bridge

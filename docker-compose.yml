@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 services:
   traefik:
@@ -34,6 +34,7 @@ services:
     environment:
       - SMTP_SERVER=smtp.example.com
       - SMTP_PORT=587
+      # - PB_CORS_ORIGINS=https://popati.web.app
     networks:
       - web
     labels:
@@ -51,8 +52,14 @@ services:
       - "traefik.http.routers.pocketbase.priority=1"
       # Strip prefix middleware
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/v1"
+      # Add CORS middleware
+      - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*" # Be more specific in production
+      - "traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.cors.headers.accesscontrolmaxage=100"
+      - "traefik.http.middlewares.cors.headers.addvaryheader=true"
       # Chain middlewares
-      - "traefik.http.routers.pocketbase.middlewares=strip-prefix@docker,security-headers@docker"
+      - "traefik.http.routers.pocketbase.middlewares=strip-prefix@docker,security-headers@docker,cors@docker"
       # Service
       - "traefik.http.services.pocketbase.loadbalancer.server.port=8080"
       # Middleware to redirect HTTP to HTTPS

@@ -7,7 +7,7 @@ services:
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--api.insecure=true"  # Enable dashboard (for testing only)
+      - "--api.insecure=true" # Enable dashboard (for testing only)
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       # SSL Configuration
@@ -18,7 +18,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
+      - "8080:8080" # Traefik dashboard
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
@@ -47,6 +47,8 @@ services:
       - "traefik.http.routers.pocketbase.entrypoints=websecure"
       - "traefik.http.routers.pocketbase.tls=true"
       - "traefik.http.routers.pocketbase.tls.certresolver=myresolver"
+      # Make sure priority is lower than ACME challenge route
+      - "traefik.http.routers.pocketbase.priority=1"
       # Strip prefix middleware
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/api/v1"
       # Chain middlewares

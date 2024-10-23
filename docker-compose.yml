@@ -1,16 +1,67 @@
-version: "3.5"
+version: "3.6"
+
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--api.insecure=true" # Enable dashboard (for testing only)
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # SSL Configuration
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=hello@johnapps.de"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard port
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt" # Persist certificates
+    networks:
+      - web
+    restart: unless-stopped
+
   pocketbase:
     build: .
     container_name: pocketbase
-    ports:
-      - "80:8080"  # If your provider forwards HTTP
-      # or
-      - "443:8080"  # If your provider forwards HTTPS
-      # or both if needed
     volumes:
       - ./pb_data:/pb/pb_data
     environment:
       - SMTP_SERVER=smtp.example.com
       - SMTP_PORT=587
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router with prefix
+      - "traefik.http.routers.pocketbase-http.rule=PathPrefix(`/api/v1`)"
+      - "traefik.http.routers.pocketbase-http.entrypoints=web"
+      - "traefik.http.routers.pocketbase-http.middlewares=redirect-to-https"
+      # HTTPS Router with prefix
+      - "traefik.http.routers.pocketbase.rule=PathPrefix(`/api/v1`)"
+      - "traefik.http.routers.pocketbase.entrypoints=websecure"
+      - "traefik.http.routers.pocketbase.tls=true"
+      - "traefik.http.routers.pocketbase.tls.certresolver=myresolver"
+      # Strip prefix middleware
+      - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/api/v1"
+      # Chain middlewares (strip prefix + security headers)
+      - "traefik.http.routers.pocketbase.middlewares=strip-prefix@docker,security-headers@docker"
+      # Service
+      - "traefik.http.services.pocketbase.loadbalancer.server.port=8080"
+      # Middleware to redirect HTTP to HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # Security Headers
+      - "traefik.http.middlewares.security-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
+      - "traefik.http.middlewares.security-headers.headers.stsincludesubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsseconds=31536000"
     restart: unless-stopped
+
+networks:
+  web:
+    name: web

@@ -1,16 +1,16 @@
-version: "3.9"
+version: "3.10"
 
 services:
   traefik:
+    # Traefik service remains the same
     image: traefik:v2.10
     container_name: traefik
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--api.insecure=true" # Enable dashboard (for testing only)
+      - "--api.insecure=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # SSL Configuration
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.myresolver.acme.email=hello@johnapps.de"
@@ -18,7 +18,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" # Traefik dashboard
+      - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
@@ -27,14 +27,17 @@ services:
     restart: unless-stopped
 
   pocketbase:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      args:
+        - PB_VERSION=0.22.21
     container_name: pocketbase
     volumes:
       - ./pb_data:/pb/pb_data
     environment:
       - SMTP_SERVER=smtp.example.com
       - SMTP_PORT=587
-      # - PB_CORS_ORIGINS=https://popati.web.app
     networks:
       - web
     labels:
@@ -48,27 +51,87 @@ services:
       - "traefik.http.routers.pocketbase.entrypoints=websecure"
       - "traefik.http.routers.pocketbase.tls=true"
       - "traefik.http.routers.pocketbase.tls.certresolver=myresolver"
-      # Make sure priority is lower than ACME challenge route
       - "traefik.http.routers.pocketbase.priority=1"
-      # Strip prefix middleware
+      # Middlewares and other configurations remain the same
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/v1"
-      # Add CORS middleware
       - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
-      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*" # Be more specific in production
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*"
       - "traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*"
       - "traefik.http.middlewares.cors.headers.accesscontrolmaxage=100"
       - "traefik.http.middlewares.cors.headers.addvaryheader=true"
-      # Chain middlewares
       - "traefik.http.routers.pocketbase.middlewares=strip-prefix@docker,security-headers@docker,cors@docker"
-      # Service
       - "traefik.http.services.pocketbase.loadbalancer.server.port=8080"
-      # Middleware to redirect HTTP to HTTPS
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # Security Headers
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"
       - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
       - "traefik.http.middlewares.security-headers.headers.stsincludesubdomains=true"
       - "traefik.http.middlewares.security-headers.headers.stsseconds=31536000"
+    restart: unless-stopped
+
+  pb_popati:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      args:
+        - PB_VERSION=0.23.11
+    container_name: pb_popati
+    volumes:
+      - ./pb_data_popati:/pb/pb_data
+    environment:
+      - SMTP_SERVER=smtp.example.com
+      - SMTP_PORT=587
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.popati-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/popati/v1`)"
+      - "traefik.http.routers.popati-http.entrypoints=web"
+      - "traefik.http.routers.popati-http.middlewares=redirect-to-https"
+      # HTTPS Router
+      - "traefik.http.routers.popati.rule=Host(`api.johnapps.de`) && PathPrefix(`/popati/v1`)"
+      - "traefik.http.routers.popati.entrypoints=websecure"
+      - "traefik.http.routers.popati.tls=true"
+      - "traefik.http.routers.popati.tls.certresolver=myresolver"
+      - "traefik.http.routers.popati.priority=1"
+      # Strip prefix middleware
+      - "traefik.http.middlewares.strip-prefix-popati.stripprefix.prefixes=/popati/v1"
+      # Apply middlewares
+      - "traefik.http.routers.popati.middlewares=strip-prefix-popati@docker,security-headers@docker,cors@docker"
+      - "traefik.http.services.popati.loadbalancer.server.port=8080"
+    restart: unless-stopped
+
+  pb_polisync:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      args:
+        - PB_VERSION=0.23.11
+    container_name: pb_polisync
+    volumes:
+      - ./pb_data_polisync:/pb/pb_data
+    environment:
+      - SMTP_SERVER=smtp.example.com
+      - SMTP_PORT=587
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      # HTTP Router
+      - "traefik.http.routers.polisync-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/polisync/v1`)"
+      - "traefik.http.routers.polisync-http.entrypoints=web"
+      - "traefik.http.routers.polisync-http.middlewares=redirect-to-https"
+      # HTTPS Router
+      - "traefik.http.routers.polisync.rule=Host(`api.johnapps.de`) && PathPrefix(`/polisync/v1`)"
+      - "traefik.http.routers.polisync.entrypoints=websecure"
+      - "traefik.http.routers.polisync.tls=true"
+      - "traefik.http.routers.polisync.tls.certresolver=myresolver"
+      - "traefik.http.routers.polisync.priority=1"
+      # Strip prefix middleware
+      - "traefik.http.middlewares.strip-prefix-polisync.stripprefix.prefixes=/polisync/v1"
+      # Apply middlewares
+      - "traefik.http.routers.polisync.middlewares=strip-prefix-polisync@docker,security-headers@docker,cors@docker"
+      - "traefik.http.services.polisync.loadbalancer.server.port=8080"
     restart: unless-stopped
 
 networks:

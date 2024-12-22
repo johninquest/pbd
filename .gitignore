@@ -1,5 +1,7 @@
 # PocketBase data directory
-# pb_data/
+# pb_data/ 
+# pb_data_polisync/ 
+# pb_data_popati/
 
 # Docker volumes
 # *.volume

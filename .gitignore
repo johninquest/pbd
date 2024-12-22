@@ -10,4 +10,7 @@
 # .env
 
 # Log files
-# *.log
+# *.log 
+
+# Temporary files 
+letsencrypt/

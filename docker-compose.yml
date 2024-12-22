@@ -2,7 +2,6 @@ version: "3.10"
 
 services:
   traefik:
-    # Traefik service remains the same
     image: traefik:v2.10
     container_name: traefik
     command:
@@ -42,17 +41,14 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      # HTTP Router
       - "traefik.http.routers.pocketbase-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/v1`)"
       - "traefik.http.routers.pocketbase-http.entrypoints=web"
       - "traefik.http.routers.pocketbase-http.middlewares=redirect-to-https"
-      # HTTPS Router
       - "traefik.http.routers.pocketbase.rule=Host(`api.johnapps.de`) && PathPrefix(`/v1`)"
       - "traefik.http.routers.pocketbase.entrypoints=websecure"
       - "traefik.http.routers.pocketbase.tls=true"
       - "traefik.http.routers.pocketbase.tls.certresolver=myresolver"
       - "traefik.http.routers.pocketbase.priority=1"
-      # Middlewares and other configurations remain the same
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/v1"
       - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
       - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*"
@@ -84,20 +80,19 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      # HTTP Router
       - "traefik.http.routers.popati-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/popati/v1`)"
       - "traefik.http.routers.popati-http.entrypoints=web"
-      - "traefik.http.routers.popati-http.middlewares=redirect-to-https"
-      # HTTPS Router
       - "traefik.http.routers.popati.rule=Host(`api.johnapps.de`) && PathPrefix(`/popati/v1`)"
       - "traefik.http.routers.popati.entrypoints=websecure"
       - "traefik.http.routers.popati.tls=true"
       - "traefik.http.routers.popati.tls.certresolver=myresolver"
-      - "traefik.http.routers.popati.priority=1"
-      # Strip prefix middleware
       - "traefik.http.middlewares.strip-prefix-popati.stripprefix.prefixes=/popati/v1"
-      # Apply middlewares
-      - "traefik.http.routers.popati.middlewares=strip-prefix-popati@docker,security-headers@docker,cors@docker"
+      - "traefik.http.middlewares.redirect-to-https-popati.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.cors-popati.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.cors-popati.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.cors-popati.headers.accesscontrolallowheaders=*"
+      - "traefik.http.routers.popati-http.middlewares=redirect-to-https-popati"
+      - "traefik.http.routers.popati.middlewares=strip-prefix-popati,cors-popati"
       - "traefik.http.services.popati.loadbalancer.server.port=8080"
     restart: unless-stopped
 
@@ -110,27 +105,23 @@ services:
     container_name: pb_polisync
     volumes:
       - ./pb_data_polisync:/pb/pb_data
-    environment:
-      - SMTP_SERVER=smtp.example.com
-      - SMTP_PORT=587
     networks:
       - web
     labels:
       - "traefik.enable=true"
-      # HTTP Router
       - "traefik.http.routers.polisync-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/polisync/v1`)"
       - "traefik.http.routers.polisync-http.entrypoints=web"
-      - "traefik.http.routers.polisync-http.middlewares=redirect-to-https"
-      # HTTPS Router
       - "traefik.http.routers.polisync.rule=Host(`api.johnapps.de`) && PathPrefix(`/polisync/v1`)"
       - "traefik.http.routers.polisync.entrypoints=websecure"
       - "traefik.http.routers.polisync.tls=true"
       - "traefik.http.routers.polisync.tls.certresolver=myresolver"
-      - "traefik.http.routers.polisync.priority=1"
-      # Strip prefix middleware
       - "traefik.http.middlewares.strip-prefix-polisync.stripprefix.prefixes=/polisync/v1"
-      # Apply middlewares
-      - "traefik.http.routers.polisync.middlewares=strip-prefix-polisync@docker,security-headers@docker,cors@docker"
+      - "traefik.http.middlewares.redirect-to-https-polisync.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.cors-polisync.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.cors-polisync.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.cors-polisync.headers.accesscontrolallowheaders=*"
+      - "traefik.http.routers.polisync-http.middlewares=redirect-to-https-polisync"
+      - "traefik.http.routers.polisync.middlewares=strip-prefix-polisync,cors-polisync"
       - "traefik.http.services.polisync.loadbalancer.server.port=8080"
     restart: unless-stopped
 

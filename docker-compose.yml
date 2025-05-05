@@ -22,7 +22,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
     networks:
-      - web
+      - web0
     restart: unless-stopped
 
   pb_popati:
@@ -35,10 +35,10 @@ services:
     volumes:
       - ./pb_data_popati:/pb/pb_data
     environment:
-      - SMTP_SERVER=smtp.example.com
+      - SMTP_SERVER=smtp.ionos.de
       - SMTP_PORT=587
     networks:
-      - web
+      - web0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.popati-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/popati/v1`)"
@@ -62,12 +62,12 @@ services:
       context: .
       dockerfile: Dockerfile.base
       args:
-        - PB_VERSION=0.23.11
+        - PB_VERSION=0.27.2
     container_name: pb_polisync
     volumes:
       - ./pb_data_polisync:/pb/pb_data
     networks:
-      - web
+      - web0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.polisync-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/polisync/v1`)"
@@ -87,5 +87,5 @@ services:
     restart: unless-stopped
 
 networks:
-  web:
-    name: web
+  web0:
+    name: web0

@@ -8,7 +8,7 @@ Dockerfile.old
 # *.volume
 
 # Environment variables
-# .env
+.env
 
 # Log files
 # *.log 

@@ -1,4 +1,4 @@
-version: "3.10"
+version: "3.11"
 
 services:
   traefik:
@@ -25,51 +25,12 @@ services:
       - web
     restart: unless-stopped
 
-  pocketbase:
-    build:
-      context: .
-      dockerfile: Dockerfile.base
-      args:
-        - PB_VERSION=0.22.21
-    container_name: pocketbase
-    volumes:
-      - ./pb_data:/pb/pb_data
-    environment:
-      - SMTP_SERVER=smtp.example.com
-      - SMTP_PORT=587
-    networks:
-      - web
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pocketbase-http.rule=Host(`api.johnapps.de`) && PathPrefix(`/v1`)"
-      - "traefik.http.routers.pocketbase-http.entrypoints=web"
-      - "traefik.http.routers.pocketbase-http.middlewares=redirect-to-https"
-      - "traefik.http.routers.pocketbase.rule=Host(`api.johnapps.de`) && PathPrefix(`/v1`)"
-      - "traefik.http.routers.pocketbase.entrypoints=websecure"
-      - "traefik.http.routers.pocketbase.tls=true"
-      - "traefik.http.routers.pocketbase.tls.certresolver=myresolver"
-      - "traefik.http.routers.pocketbase.priority=1"
-      - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/v1"
-      - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
-      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*"
-      - "traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*"
-      - "traefik.http.middlewares.cors.headers.accesscontrolmaxage=100"
-      - "traefik.http.middlewares.cors.headers.addvaryheader=true"
-      - "traefik.http.routers.pocketbase.middlewares=strip-prefix@docker,security-headers@docker,cors@docker"
-      - "traefik.http.services.pocketbase.loadbalancer.server.port=8080"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.security-headers.headers.framedeny=true"
-      - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
-      - "traefik.http.middlewares.security-headers.headers.stsincludesubdomains=true"
-      - "traefik.http.middlewares.security-headers.headers.stsseconds=31536000"
-    restart: unless-stopped
-
   pb_popati:
     build:
       context: .
       dockerfile: Dockerfile.base
       args:
-        - PB_VERSION=0.23.11
+        - PB_VERSION=0.27.2
     container_name: pb_popati
     volumes:
       - ./pb_data_popati:/pb/pb_data
